@@ -123,9 +123,8 @@ def extract_app_hash(apk_path: str, expected_app_ver: str) -> dict | None:
             if reader.peek_name() == "production_android":
                 config = UTTCGen_AsInstance(AndroidPlayerSettingConfig, reader)
                 app_version = f"{config.clientMajorVersion}.{config.clientMinorVersion}.{config.clientBuildVersion}"
-                assert compare_version(app_version, expected_app_ver), (
-                    f"Version mismatch: {app_version} != {expected_app_ver}"
-                )
+                if not compare_version(app_version, expected_app_ver):
+                    logger.warning(f"APK version {app_version} behind store version {expected_app_ver}, using APK data")
                 data_version = (
                     f"{config.clientDataMajorVersion}.{config.clientDataMinorVersion}.{config.clientDataBuildVersion}"
                 )
