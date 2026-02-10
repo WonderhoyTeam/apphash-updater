@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     http_proxy: str | None = None
     enabled_regions: str = "JP,EN,TW,KR,CN"
     unity_version: str = "2022.3.21f1"
+    cache_dir: str = "/data/cache"
 
     @property
     def region_list(self) -> list[str]:

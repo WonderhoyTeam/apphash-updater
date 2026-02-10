@@ -1,10 +1,12 @@
 import asyncio
+import json
 import logging
 import os
 import re
 import tempfile
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 
 import aiohttp
 import UnityPy
@@ -32,6 +34,26 @@ logger = logging.getLogger("wonderhoy.updater")
 # In-memory cache: region -> {appVersion, appHash, multiPlayVersion, dataVersion, assetHash, updatedAt}
 _cache: dict[str, dict] = {}
 _lock = asyncio.Lock()
+
+_CACHE_FILE = Path(settings.cache_dir) / "cache.json"
+
+
+def _save_cache() -> None:
+    try:
+        _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _CACHE_FILE.write_text(json.dumps(_cache, indent=2))
+    except OSError:
+        logger.warning("Failed to persist cache to disk", exc_info=True)
+
+
+def _load_cache() -> None:
+    global _cache
+    if _CACHE_FILE.is_file():
+        try:
+            _cache = json.loads(_CACHE_FILE.read_text())
+            logger.info(f"Loaded cached data for regions: {list(_cache.keys())}")
+        except (json.JSONDecodeError, OSError):
+            logger.warning("Failed to load cache from disk", exc_info=True)
 
 
 def get_cache() -> dict[str, dict]:
@@ -153,6 +175,7 @@ async def update_region(region: str, *, force: bool = False) -> dict | None:
         result["updatedAt"] = datetime.now(timezone.utc).isoformat()
         async with _lock:
             _cache[region] = result
+            _save_cache()
         logger.info(f"[{region}] updated: v{latest_ver} hash={result['appHash']}")
         return result
     finally:
@@ -175,6 +198,7 @@ async def update_all(*, force: bool = False) -> dict[str, str]:
 
 
 async def scheduler_loop():
+    _load_cache()
     interval = settings.refresh_interval_minutes * 60
     while True:
         logger.info("Scheduled refresh starting...")
