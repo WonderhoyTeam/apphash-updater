@@ -160,7 +160,7 @@ async def update_region(region: str, *, force: bool = False) -> dict | None:
         cached = _cache.get(region)
 
     latest_ver = await _get_latest_version(region)
-    if not force and cached and cached.get("appVersion") == latest_ver:
+    if not force and cached and cached.get("storeVersion") == latest_ver:
         logger.info(f"[{region}] version {latest_ver} unchanged, skipping")
         return cached
 
@@ -171,6 +171,7 @@ async def update_region(region: str, *, force: bool = False) -> dict | None:
         if not result:
             logger.error(f"[{region}] failed to extract app hash")
             return None
+        result["storeVersion"] = latest_ver
         result["updatedAt"] = datetime.now(timezone.utc).isoformat()
         async with _lock:
             _cache[region] = result
