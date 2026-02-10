@@ -15,7 +15,10 @@ def UTTCGen(fullname: str, typetree: dict):
                 types: dict = clazz.__annotations__
                 for k, sub in types.items():
                     if type(sub) == str:
-                        sub = eval(sub)
+                        try:
+                            sub = eval(sub)
+                        except NameError:
+                            sub = lambda *a, **kw: a[0] if a else kw
                     while sub.__name__ == "Optional":
                         sub = sub.__args__[0]
                     reduce_arg = getattr(sub, "__args__", [None])[0]
